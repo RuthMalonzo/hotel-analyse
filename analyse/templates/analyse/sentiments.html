@@ -24,15 +24,22 @@
 
 <hr>
 
-<!-- GRAPHIQUE SENTIMENTS -->
-<h2>1️⃣ Répartition des Sentiments</h2>
-<canvas id="chart_sentiments"></canvas>
+<!-- LES 2 GRAPHIQUES CÔTE À CÔTE -->
+<div style="display: flex; gap: 20px; align-items: flex-start; margin: 20px 0;">
 
-<hr>
+    <!-- GRAPHIQUE 1 : Répartition -->
+    <div style="flex: 1; max-width: 350px;">
+        <h2>1️⃣ Répartition des Sentiments</h2>
+        <canvas id="chart_sentiments"></canvas>
+    </div>
 
-<!-- GRAPHIQUE SENTIMENTS PAR HÔTEL -->
-<h2>2️⃣ Sentiments par Hôtel</h2>
-<canvas id="chart_sent_hotel"></canvas>
+    <!-- GRAPHIQUE 2 : Par hôtel -->
+    <div style="flex: 2;">
+        <h2>2️⃣ Sentiments par Hôtel</h2>
+        <canvas id="chart_sent_hotel"></canvas>
+    </div>
+
+</div>
 
 <hr>
 
