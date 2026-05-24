@@ -1,0 +1,106 @@
+{% extends 'analyse/base.html' %}
+
+{% block content %}
+<h1>📊 Statistiques de Base</h1>
+
+<!-- FILTRE HÔTEL -->
+<form method="GET">
+    <label>🏨 Choisir un hôtel :</label>
+    <select name="hotel" onchange="this.form.submit()">
+        {% for h in hotels_list %}
+        <option value="{{ h }}" {% if h == hotel_choisi %}selected{% endif %}>{{ h }}</option>
+        {% endfor %}
+    </select>
+</form>
+
+<hr>
+
+<!-- MÉTRIQUES -->
+<div class="metrics">
+    <div class="metric-card">
+        <h3>📝 Nombre d'avis</h3>
+        <p class="metric-value">{{ stats.nb_avis }}</p>
+    </div>
+    <div class="metric-card">
+        <h3>⭐ Moyenne</h3>
+        <p class="metric-value">{{ stats.moyenne }}</p>
+    </div>
+    <div class="metric-card">
+        <h3>📉 Écart-type</h3>
+        <p class="metric-value">{{ stats.ecart_type }}</p>
+    </div>
+    <div class="metric-card">
+        <h3>📊 Médiane</h3>
+        <p class="metric-value">{{ stats.mediane }}</p>
+    </div>
+    <div class="metric-card">
+        <h3>🔼 Maximum</h3>
+        <p class="metric-value">{{ stats.maximum }}</p>
+    </div>
+    <div class="metric-card">
+        <h3>🔽 Minimum</h3>
+        <p class="metric-value">{{ stats.minimum }}</p>
+    </div>
+</div>
+
+<hr>
+
+<!-- TABLEAU COMPLET -->
+<h2>📋 Tableau Complet</h2>
+<table>
+    <thead>
+        <tr><th>Statistique</th><th>Valeur</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Nombre d'avis</td><td>{{ stats.nb_avis }}</td></tr>
+        <tr><td>Moyenne</td><td>{{ stats.moyenne }}</td></tr>
+        <tr><td>Écart-type</td><td>{{ stats.ecart_type }}</td></tr>
+        <tr><td>Variance</td><td>{{ stats.variance }}</td></tr>
+        <tr><td>Médiane</td><td>{{ stats.mediane }}</td></tr>
+        <tr><td>Minimum</td><td>{{ stats.minimum }}</td></tr>
+        <tr><td>Maximum</td><td>{{ stats.maximum }}</td></tr>
+        <tr><td>Q1</td><td>{{ stats.q1 }}</td></tr>
+        <tr><td>Q3</td><td>{{ stats.q3 }}</td></tr>
+        <tr><td>IQR</td><td>{{ stats.iqr }}</td></tr>
+        <tr><td>Coefficient de variation (%)</td><td>{{ stats.cv }}</td></tr>
+    </tbody>
+</table>
+
+<hr>
+
+<!-- RÉPARTITION -->
+<h2>📊 Répartition des Notes</h2>
+<table>
+    <thead>
+        <tr><th>Note</th><th>Nombre d'avis</th><th>Pourcentage</th></tr>
+    </thead>
+    <tbody>
+        {% for r in repartition %}
+        <tr>
+            <td>{{ r.note }}</td>
+            <td>{{ r.count }}</td>
+            <td>{{ r.pct }} %</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<hr>
+
+<!-- APERÇU -->
+<h2>🗂️ Aperçu des Données</h2>
+<table>
+    <thead>
+        <tr><th>Hôtel</th><th>Note</th><th>Commentaire</th></tr>
+    </thead>
+    <tbody>
+        {% for a in apercu %}
+        <tr>
+            <td>{{ a.hotel }}</td>
+            <td>{{ a.note }}</td>
+            <td>{{ a.commentaire|truncatechars:100 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

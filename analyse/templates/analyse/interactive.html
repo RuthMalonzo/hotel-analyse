@@ -1,0 +1,57 @@
+{% extends 'analyse/base.html' %}
+
+{% block content %}
+<h1>💬 Analyse Interactive</h1>
+<p>Saisissez un commentaire et obtenez instantanément sa polarité !</p>
+
+<hr>
+
+<!-- FORMULAIRE -->
+<form method="POST">
+    {% csrf_token %}
+    <div class="form-group">
+        <label>📝 Votre commentaire :</label>
+        <textarea name="commentaire" rows="5"
+            placeholder="Ex: L'hôtel était magnifique, le personnel très accueillant..."></textarea>
+    </div>
+    <button type="submit">🔍 Analyser</button>
+</form>
+
+<hr>
+
+<!-- RÉSULTATS -->
+{% if result %}
+<h2>📊 Résultats</h2>
+
+<div class="metrics">
+    <div class="metric-card">
+        <h3>🎭 Sentiment</h3>
+        <p class="metric-value">{{ result.label }}</p>
+    </div>
+    <div class="metric-card">
+        <h3>📊 Polarité</h3>
+        <p class="metric-value">{{ result.polarite }}</p>
+        <p>-1 = négatif | 0 = neutre | +1 = positif</p>
+    </div>
+    <div class="metric-card">
+        <h3>🎯 Subjectivité</h3>
+        <p class="metric-value">{{ result.subjectivite }}</p>
+        <p>0 = objectif | 1 = subjectif</p>
+    </div>
+</div>
+
+<hr>
+
+<h3>💬 Commentaire analysé :</h3>
+<blockquote>{{ result.commentaire }}</blockquote>
+
+<h3>📈 Comparaison avec la base</h3>
+<p>Polarité moyenne de la base : <strong>{{ result.pol_moyenne }}</strong></p>
+{% if result.plus_positif %}
+    <p class="positif">✅ Ce commentaire est plus positif que la moyenne !</p>
+{% else %}
+    <p class="negatif">⚠️ Ce commentaire est moins positif que la moyenne.</p>
+{% endif %}
+
+{% endif %}
+{% endblock %}

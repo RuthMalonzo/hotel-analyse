@@ -1,0 +1,41 @@
+{% extends 'analyse/base.html' %}
+
+{% block content %}
+<h1>🏨 Analyse des Avis Hôtels - Français</h1>
+<p>Bienvenue sur le tableau de bord d'analyse des avis hôtels en Afrique.</p>
+
+<div class="metrics">
+    <div class="metric-card">
+        <h3>📝 Total Avis</h3>
+        <p class="metric-value">{{ total_avis }}</p>
+    </div>
+    <div class="metric-card">
+        <h3>🏨 Hôtels</h3>
+        <p class="metric-value">{{ nb_hotels }}</p>
+    </div>
+    <div class="metric-card">
+        <h3>⭐ Note Moyenne</h3>
+        <p class="metric-value">{{ note_moyenne }} / 10</p>
+    </div>
+</div>
+
+<h2>🏨 Hôtels analysés</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Hôtel</th>
+            <th>Nombre d'avis</th>
+            <th>Note Moyenne</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for h in hotels %}
+        <tr>
+            <td>{{ h.hotel }}</td>
+            <td>{{ h.nb_avis }}</td>
+            <td>{{ h.note_moy }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

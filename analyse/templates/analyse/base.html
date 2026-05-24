@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse Hôtels</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav>
+        <div class="nav-brand">🏨 Analyse Hôtels</div>
+        <div class="nav-links">
+            <a href="{% url 'accueil' %}">🏠 Accueil</a>
+            <a href="{% url 'statistiques' %}">📊 Statistiques</a>
+            <a href="{% url 'visualisations' %}">📈 Visualisations</a>
+            <a href="{% url 'sentiments' %}">🔍 Sentiments</a>
+            <a href="{% url 'interactive' %}">💬 Interactif</a>
+        </div>
+    </nav>
+
+    <!-- CONTENU -->
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+</body>
+</html>

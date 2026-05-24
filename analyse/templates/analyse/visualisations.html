@@ -1,0 +1,79 @@
+{% extends 'analyse/base.html' %}
+
+{% block content %}
+<h1>📈 Visualisations</h1>
+
+<!-- GRAPHIQUE 1 : Notes moyennes par hôtel -->
+<h2>1️⃣ Note Moyenne par Hôtel</h2>
+<canvas id="chart_moy_hotel"></canvas>
+
+<hr>
+
+<!-- GRAPHIQUE 2 : Nombre d'avis par hôtel -->
+<h2>2️⃣ Nombre d'Avis par Hôtel</h2>
+<canvas id="chart_nb_hotel"></canvas>
+
+<hr>
+
+<!-- GRAPHIQUE 3 : Distribution des notes -->
+<h2>3️⃣ Distribution des Notes</h2>
+<canvas id="chart_dist"></canvas>
+
+<script>
+// ── GRAPHIQUE 1 : Notes moyennes ──
+const moy_data = {{ moy_hotel|safe }};
+new Chart(document.getElementById('chart_moy_hotel'), {
+    type: 'bar',
+    data: {
+        labels: moy_data.map(d => d.hotel),
+        datasets: [{
+            label: 'Note Moyenne',
+            data: moy_data.map(d => d.note),
+            backgroundColor: 'steelblue',
+        }]
+    },
+    options: {
+        responsive: true,
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { min: 0, max: 10 } }
+    }
+});
+
+// ── GRAPHIQUE 2 : Nombre d'avis ──
+const nb_data = {{ nb_hotel|safe }};
+new Chart(document.getElementById('chart_nb_hotel'), {
+    type: 'bar',
+    data: {
+        labels: nb_data.map(d => d.hotel),
+        datasets: [{
+            label: "Nombre d'avis",
+            data: nb_data.map(d => d.nb_avis),
+            backgroundColor: '#2ecc71',
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+    }
+});
+
+// ── GRAPHIQUE 3 : Distribution ──
+const dist_data = {{ dist_notes|safe }};
+new Chart(document.getElementById('chart_dist'), {
+    type: 'bar',
+    data: {
+        labels: dist_data.map(d => 'Note ' + d.note),
+        datasets: [{
+            label: "Nombre d'avis",
+            data: dist_data.map(d => d.count),
+            backgroundColor: '#3498db',
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+    }
+});
+</script>
+{% endblock %}

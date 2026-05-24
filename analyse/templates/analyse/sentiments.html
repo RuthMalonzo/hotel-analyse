@@ -1,0 +1,126 @@
+{% extends 'analyse/base.html' %}
+
+{% block content %}
+<h1>🔍 Analyse des Sentiments</h1>
+
+<!-- MÉTRIQUES -->
+<div class="metrics">
+    <div class="metric-card positif">
+        <h3>😊 Positifs</h3>
+        <p class="metric-value">{{ positifs }}</p>
+        <p>{{ pct_positifs }} %</p>
+    </div>
+    <div class="metric-card neutre">
+        <h3>😐 Neutres</h3>
+        <p class="metric-value">{{ neutres }}</p>
+        <p>{{ pct_neutres }} %</p>
+    </div>
+    <div class="metric-card negatif">
+        <h3>😞 Négatifs</h3>
+        <p class="metric-value">{{ negatifs }}</p>
+        <p>{{ pct_negatifs }} %</p>
+    </div>
+</div>
+
+<hr>
+
+<!-- GRAPHIQUE SENTIMENTS -->
+<h2>1️⃣ Répartition des Sentiments</h2>
+<canvas id="chart_sentiments"></canvas>
+
+<hr>
+
+<!-- GRAPHIQUE SENTIMENTS PAR HÔTEL -->
+<h2>2️⃣ Sentiments par Hôtel</h2>
+<canvas id="chart_sent_hotel"></canvas>
+
+<hr>
+
+<!-- TOP POSITIFS -->
+<h2>😊 Top 5 Avis les plus Positifs</h2>
+<table>
+    <thead>
+        <tr><th>Hôtel</th><th>Note</th><th>Polarité</th><th>Commentaire</th></tr>
+    </thead>
+    <tbody>
+        {% for a in top_positifs %}
+        <tr>
+            <td>{{ a.hotel }}</td>
+            <td>{{ a.note }}</td>
+            <td>{{ a.polarite }}</td>
+            <td>{{ a.commentaire|truncatechars:100 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<hr>
+
+<!-- TOP NÉGATIFS -->
+<h2>😞 Top 5 Avis les plus Négatifs</h2>
+<table>
+    <thead>
+        <tr><th>Hôtel</th><th>Note</th><th>Polarité</th><th>Commentaire</th></tr>
+    </thead>
+    <tbody>
+        {% for a in top_negatifs %}
+        <tr>
+            <td>{{ a.hotel }}</td>
+            <td>{{ a.note }}</td>
+            <td>{{ a.polarite }}</td>
+            <td>{{ a.commentaire|truncatechars:100 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+// ── GRAPHIQUE 1 : Répartition sentiments ──
+new Chart(document.getElementById('chart_sentiments'), {
+    type: 'doughnut',
+    data: {
+        labels: ['😊 Positif', '😐 Neutre', '😞 Négatif'],
+        datasets: [{
+            data: [{{ positifs }}, {{ neutres }}, {{ negatifs }}],
+            backgroundColor: ['#2ecc71', '#3498db', '#e74c3c'],
+        }]
+    },
+    options: { responsive: true }
+});
+
+// ── GRAPHIQUE 2 : Sentiments par hôtel ──
+const sent_data = {{ sent_hotel|safe }};
+const hotels    = [...new Set(sent_data.map(d => d.hotel))];
+const positifs  = sent_data.filter(d => d.sentiment === 'Positif');
+const neutres   = sent_data.filter(d => d.sentiment === 'Neutre');
+const negatifs  = sent_data.filter(d => d.sentiment === 'Négatif');
+
+new Chart(document.getElementById('chart_sent_hotel'), {
+    type: 'bar',
+    data: {
+        labels: hotels,
+        datasets: [
+            {
+                label: '😊 Positif',
+                data: hotels.map(h => { const f = positifs.find(d => d.hotel === h); return f ? f.count : 0; }),
+                backgroundColor: '#2ecc71',
+            },
+            {
+                label: '😐 Neutre',
+                data: hotels.map(h => { const f = neutres.find(d => d.hotel === h); return f ? f.count : 0; }),
+                backgroundColor: '#3498db',
+            },
+            {
+                label: '😞 Négatif',
+                data: hotels.map(h => { const f = negatifs.find(d => d.hotel === h); return f ? f.count : 0; }),
+                backgroundColor: '#e74c3c',
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: { x: { stacked: false } }
+    }
+});
+</script>
+{% endblock %}
