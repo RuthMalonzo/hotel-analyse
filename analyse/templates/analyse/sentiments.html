@@ -43,6 +43,12 @@
 
 <hr>
 
+<!-- GRAPHIQUE 3 : Aspects -->
+<h2>3️⃣ Top Aspects Mentionnés</h2>
+<canvas id="chart_aspects"></canvas>
+
+<hr>
+
 <!-- TOP POSITIFS -->
 <h2>😊 Top 5 Avis les plus Positifs</h2>
 <table>
@@ -81,6 +87,9 @@
     </tbody>
 </table>
 
+<!-- CHART.JS LIBRARY -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 // ── GRAPHIQUE 1 : Répartition sentiments ──
 new Chart(document.getElementById('chart_sentiments'), {
@@ -96,11 +105,11 @@ new Chart(document.getElementById('chart_sentiments'), {
 });
 
 // ── GRAPHIQUE 2 : Sentiments par hôtel ──
-const sent_data = {{ sent_hotel|safe }};
-const hotels    = [...new Set(sent_data.map(d => d.hotel))];
-const positifs  = sent_data.filter(d => d.sentiment === 'Positif');
-const neutres   = sent_data.filter(d => d.sentiment === 'Neutre');
-const negatifs  = sent_data.filter(d => d.sentiment === 'Négatif');
+const sent_data    = {{ sent_hotel|safe }};
+const hotels       = [...new Set(sent_data.map(d => d.hotel))];
+const positif_data = sent_data.filter(d => d.sentiment === 'Positif');
+const neutre_data  = sent_data.filter(d => d.sentiment === 'Neutre');
+const negatif_data = sent_data.filter(d => d.sentiment === 'Négatif');
 
 new Chart(document.getElementById('chart_sent_hotel'), {
     type: 'bar',
@@ -109,17 +118,17 @@ new Chart(document.getElementById('chart_sent_hotel'), {
         datasets: [
             {
                 label: '😊 Positif',
-                data: hotels.map(h => { const f = positifs.find(d => d.hotel === h); return f ? f.count : 0; }),
+                data: hotels.map(h => { const f = positif_data.find(d => d.hotel === h); return f ? f.count : 0; }),
                 backgroundColor: '#2ecc71',
             },
             {
                 label: '😐 Neutre',
-                data: hotels.map(h => { const f = neutres.find(d => d.hotel === h); return f ? f.count : 0; }),
+                data: hotels.map(h => { const f = neutre_data.find(d => d.hotel === h); return f ? f.count : 0; }),
                 backgroundColor: '#3498db',
             },
             {
                 label: '😞 Négatif',
-                data: hotels.map(h => { const f = negatifs.find(d => d.hotel === h); return f ? f.count : 0; }),
+                data: hotels.map(h => { const f = negatif_data.find(d => d.hotel === h); return f ? f.count : 0; }),
                 backgroundColor: '#e74c3c',
             }
         ]
@@ -127,6 +136,28 @@ new Chart(document.getElementById('chart_sent_hotel'), {
     options: {
         responsive: true,
         scales: { x: { stacked: false } }
+    }
+});
+
+// ── GRAPHIQUE 3 : Aspects ──
+const aspects_data = {{ aspects|safe }};
+new Chart(document.getElementById('chart_aspects'), {
+    type: 'bar',
+    data: {
+        labels: aspects_data.map(d => d.aspect),
+        datasets: [{
+            label: "Nombre de mentions",
+            data: aspects_data.map(d => d.count),
+            backgroundColor: aspects_data.map((_, i) =>
+                `hsl(${210 + i * 10}, 70%, ${60 - i * 3}%)`
+            ),
+        }]
+    },
+    options: {
+        responsive: true,
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true } }
     }
 });
 </script>

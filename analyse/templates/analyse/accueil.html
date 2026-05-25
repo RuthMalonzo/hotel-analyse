@@ -1,8 +1,20 @@
 {% extends 'analyse/base.html' %}
 
 {% block content %}
-<h1>🏨 Analyse des Avis Hôtels - Français</h1>
+<h1>🏨 Analyse des Avis des Hôtels</h1>
 <p>Bienvenue sur le tableau de bord d'analyse des avis hôtels en Afrique.</p>
+
+<!-- FILTRE LANGUE -->
+<form method="GET">
+    <label>🌍 Choisir une langue :</label>
+    <select name="langue" onchange="this.form.submit()">
+        {% for l in langues_list %}
+        <option value="{{ l }}" {% if l == langue_choisie %}selected{% endif %}>{{ l }}</option>
+        {% endfor %}
+    </select>
+</form>
+
+<hr>
 
 <div class="metrics">
     <div class="metric-card">
@@ -26,6 +38,7 @@
             <th>Hôtel</th>
             <th>Nombre d'avis</th>
             <th>Note Moyenne</th>
+            <th>Langue</th>
         </tr>
     </thead>
     <tbody>
@@ -34,6 +47,7 @@
             <td>{{ h.hotel }}</td>
             <td>{{ h.nb_avis }}</td>
             <td>{{ h.note_moy }}</td>
+            <td>{{ h.langue }}</td>
         </tr>
         {% endfor %}
     </tbody>

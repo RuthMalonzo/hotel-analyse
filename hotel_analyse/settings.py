@@ -120,3 +120,4 @@ STATIC_URL = 'static/'
 import os
 DATA_FILE = os.path.join(BASE_DIR, 'avis_francais.xlsx')
 STATICFILES_DIRS = [BASE_DIR / 'analyse/static']
+DATA_FILE_EN = os.path.join(BASE_DIR, 'avis_anglais.xlsx')

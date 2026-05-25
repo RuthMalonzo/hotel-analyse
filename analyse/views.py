@@ -1,29 +1,46 @@
 import pandas as pd
 import json
+import os
 from django.shortcuts import render
 from django.conf import settings
 from textblob import TextBlob
-
+from textblob_fr import PatternTagger, PatternAnalyzer
+from langdetect import detect
 
 # ─────────────────────────────────────────────
 # CHARGEMENT DES DONNÉES
 # ─────────────────────────────────────────────
 def load_data():
-    df = pd.read_excel(settings.DATA_FILE)
+    df_fr = pd.read_excel(settings.DATA_FILE)
+    df_en = pd.read_excel(settings.DATA_FILE_EN)
+    df_fr["langue"] = "🇫🇷 Français"
+    df_en["langue"] = "🇬🇧 Anglais"
+    df = pd.concat([df_fr, df_en], ignore_index=True)
     df["note"] = pd.to_numeric(df["note"], errors="coerce")
     df = df.dropna(subset=["note", "commentaire"])
     df["commentaire"] = df["commentaire"].astype(str)
     return df
 
 
+# ─────────────────────────────────────────────
+# ANALYSE SENTIMENT
+# 🇫🇷 TextBlob-fr pour français
+# 🇬🇧 TextBlob pour anglais
+# ─────────────────────────────────────────────
 def get_sentiment(texte):
     try:
-        blob = TextBlob(texte)
-        pol = round(blob.sentiment.polarity, 3)
-        sub = round(blob.sentiment.subjectivity, 3)
-        if pol > 0.1:
+        langue = detect(str(texte))
+        if langue == "fr":
+            blob = TextBlob(str(texte), pos_tagger=PatternTagger(), analyzer=PatternAnalyzer())
+            pol  = round(blob.sentiment[0], 3)
+            sub  = round(blob.sentiment[1], 3)
+        else:
+            blob = TextBlob(str(texte))
+            pol  = round(blob.sentiment.polarity, 3)
+            sub  = round(blob.sentiment.subjectivity, 3)
+        if pol > 0.05:
             label = "Positif"
-        elif pol < -0.1:
+        elif pol < -0.05:
             label = "Négatif"
         else:
             label = "Neutre"
@@ -33,24 +50,61 @@ def get_sentiment(texte):
 
 
 # ─────────────────────────────────────────────
+# ANALYSE DES ASPECTS
+# ─────────────────────────────────────────────
+def analyser_aspects(df):
+    aspects = {
+        "service":       ["service", "personnel", "staff", "accueil", "réception", "reception"],
+        "chambre":       ["chambre", "room", "lit", "bed", "espace"],
+        "nourriture":    ["nourriture", "restaurant", "repas", "food", "cuisine", "breakfast"],
+        "piscine":       ["piscine", "pool", "baignade"],
+        "propreté":      ["propre", "propreté", "clean", "hygiène", "hygiene"],
+        "prix":          ["prix", "tarif", "cher", "coût", "abordable", "price", "expensive"],
+        "localisation":  ["localisation", "location", "quartier", "centre", "situé"],
+        "wifi":          ["wifi", "internet", "connexion", "network"],
+        "climatisation": ["climatisation", "clim", "ac", "froid", "chaud", "air conditioning"],
+        "parking":       ["parking", "voiture", "stationnement", "car park"],
+        "general":       ["bien", "good", "excellent", "parfait", "super", "great", "nice"],
+    }
+    counts = {}
+    for aspect, mots in aspects.items():
+        total = 0
+        for commentaire in df["commentaire"]:
+            commentaire_lower = str(commentaire).lower()
+            for mot in mots:
+                if mot in commentaire_lower:
+                    total += 1
+                    break
+        counts[aspect] = total
+    return sorted(counts.items(), key=lambda x: x[1], reverse=True)
+
+
+# ─────────────────────────────────────────────
 # ACCUEIL
 # ─────────────────────────────────────────────
 def accueil(request):
     df = load_data()
-    hotels = df.groupby("hotel").agg(
+    langue_choisie = request.GET.get("langue", "Tous")
+    langues_list   = ["Tous", "🇫🇷 Français", "🇬🇧 Anglais"]
+
+    if langue_choisie != "Tous":
+        df_filtre = df[df["langue"] == langue_choisie]
+    else:
+        df_filtre = df
+
+    hotels = df_filtre.groupby("hotel").agg(
         nb_avis=("commentaire", "count"),
-        note_moy=("note", "mean")
+        note_moy=("note", "mean"),
+        langue=("langue", lambda x: ", ".join(x.unique()))
     ).round(2).reset_index()
-    hotels = hotels.rename(columns={
-        "hotel": "hotel",
-        "nb_avis": "nb_avis",
-        "note_moy": "note_moy"
-    })
+
     context = {
-        "total_avis": len(df),
-        "nb_hotels": df["hotel"].nunique(),
-        "note_moyenne": round(df["note"].mean(), 2),
-        "hotels": hotels.to_dict("records"),
+        "total_avis":     len(df_filtre),
+        "nb_hotels":      df_filtre["hotel"].nunique(),
+        "note_moyenne":   round(df_filtre["note"].mean(), 2),
+        "hotels":         hotels.to_dict("records"),
+        "langues_list":   langues_list,
+        "langue_choisie": langue_choisie,
     }
     return render(request, "analyse/accueil.html", context)
 
@@ -61,12 +115,14 @@ def accueil(request):
 def statistiques(request):
     df = load_data()
     hotel_choisi = request.GET.get("hotel", "Tous")
-    hotels_list = ["Tous"] + sorted(df["hotel"].unique().tolist())
+    hotels_list  = ["Tous"] + sorted(df["hotel"].unique().tolist())
 
     if hotel_choisi != "Tous":
-        df_f = df[df["hotel"] == hotel_choisi]
+        df_f = df[df["hotel"] == hotel_choisi].copy()
     else:
-        df_f = df
+        df_f = df.copy()
+
+    df_f["note"] = df_f["note"].round(0).astype(int)
 
     stats = {
         "nb_avis":    len(df_f),
@@ -89,11 +145,11 @@ def statistiques(request):
     ]
 
     context = {
-        "stats": stats,
-        "hotels_list": hotels_list,
+        "stats":        stats,
+        "hotels_list":  hotels_list,
         "hotel_choisi": hotel_choisi,
-        "repartition": repartition_data,
-        "apercu": df_f[["hotel", "note", "commentaire"]].head(20).to_dict("records"),
+        "repartition":  repartition_data,
+        "apercu":       df_f[["hotel", "note", "commentaire"]].head(20).to_dict("records"),
     }
     return render(request, "analyse/statistiques.html", context)
 
@@ -104,17 +160,14 @@ def statistiques(request):
 def visualisations(request):
     df = load_data()
 
-    # Notes moyennes par hôtel
-    moy_hotel = df.groupby("hotel")["note"].mean().round(2).reset_index()
+    moy_hotel      = df.groupby("hotel")["note"].mean().round(2).reset_index()
     moy_hotel_data = moy_hotel.to_dict("records")
 
-    # Nombre d'avis par hôtel
-    nb_hotel = df.groupby("hotel")["note"].count().reset_index()
+    nb_hotel         = df.groupby("hotel")["note"].count().reset_index()
     nb_hotel.columns = ["hotel", "nb_avis"]
-    nb_hotel_data = nb_hotel.to_dict("records")
+    nb_hotel_data    = nb_hotel.to_dict("records")
 
-    # Distribution des notes
-    dist = df["note"].value_counts().sort_index()
+    dist      = df["note"].value_counts().sort_index()
     dist_data = [{"note": int(k), "count": int(v)} for k, v in dist.items()]
 
     context = {
@@ -126,38 +179,53 @@ def visualisations(request):
 
 
 # ─────────────────────────────────────────────
-# SENTIMENTS
+# SENTIMENTS (avec cache)
 # ─────────────────────────────────────────────
 def sentiments(request):
-    df = load_data()
-    df["polarite"], df["subjectivite"], df["sentiment"] = zip(
-        *df["commentaire"].apply(lambda x: get_sentiment(x))
-    )
+    df         = load_data()
+    cache_file = os.path.join(settings.BASE_DIR, 'sentiments_cache.csv')
 
-    positifs = (df["sentiment"] == "Positif").sum()
-    neutres  = (df["sentiment"] == "Neutre").sum()
-    negatifs = (df["sentiment"] == "Négatif").sum()
+    # ✅ Si le cache existe → on le lit directement
+    if os.path.exists(cache_file):
+        print("✅ Lecture du cache...")
+        df_sent = pd.read_csv(cache_file, encoding="utf-8-sig")
+    else:
+        # 1ère fois → analyse tout → sauvegarde
+        print("⏳ 1ère analyse en cours sur tous les commentaires...")
+        resultats          = df["commentaire"].apply(lambda x: get_sentiment(x))
+        df["polarite"]     = resultats.apply(lambda x: x[0])
+        df["subjectivite"] = resultats.apply(lambda x: x[1])
+        df["sentiment"]    = resultats.apply(lambda x: x[2])
+        df.to_csv(cache_file, index=False, encoding="utf-8-sig")
+        df_sent = df
+        print("✅ Cache sauvegardé !")
 
-    # Sentiments par hôtel
-    sent_hotel = df.groupby(["hotel", "sentiment"]).size().reset_index(name="count")
+    positifs = (df_sent["sentiment"] == "Positif").sum()
+    neutres  = (df_sent["sentiment"] == "Neutre").sum()
+    negatifs = (df_sent["sentiment"] == "Négatif").sum()
+
+    sent_hotel      = df_sent.groupby(["hotel", "sentiment"]).size().reset_index(name="count")
     sent_hotel_data = sent_hotel.to_dict("records")
 
-    # Top avis positifs et négatifs
-    top_positifs = df.nlargest(5, "polarite")[["hotel", "note", "polarite", "commentaire"]].to_dict("records")
-    top_negatifs = df.nsmallest(5, "polarite")[["hotel", "note", "polarite", "commentaire"]].to_dict("records")
+    top_positifs = df_sent.nlargest(5, "polarite")[["hotel", "note", "polarite", "commentaire"]].to_dict("records")
+    top_negatifs = df_sent.nsmallest(5, "polarite")[["hotel", "note", "polarite", "commentaire"]].to_dict("records")
+
+    aspects_data = analyser_aspects(df_sent)
+    aspects_json = json.dumps([{"aspect": k, "count": v} for k, v in aspects_data])
 
     context = {
-        "positifs":       int(positifs),
-        "neutres":        int(neutres),
-        "negatifs":       int(negatifs),
-        "total":          len(df),
-        "pct_positifs":   round(positifs / len(df) * 100, 1),
-        "pct_neutres":    round(neutres  / len(df) * 100, 1),
-        "pct_negatifs":   round(negatifs / len(df) * 100, 1),
-        "sent_hotel":     json.dumps(sent_hotel_data),
-        "top_positifs":   top_positifs,
-        "top_negatifs":   top_negatifs,
-        "pol_moyenne":    round(df["polarite"].mean(), 3),
+        "positifs":     int(positifs),
+        "neutres":      int(neutres),
+        "negatifs":     int(negatifs),
+        "total":        len(df_sent),
+        "pct_positifs": round(positifs / len(df_sent) * 100, 1),
+        "pct_neutres":  round(neutres  / len(df_sent) * 100, 1),
+        "pct_negatifs": round(negatifs / len(df_sent) * 100, 1),
+        "sent_hotel":   json.dumps(sent_hotel_data),
+        "top_positifs": top_positifs,
+        "top_negatifs": top_negatifs,
+        "pol_moyenne":  round(df_sent["polarite"].mean(), 3),
+        "aspects":      aspects_json,
     }
     return render(request, "analyse/sentiments.html", context)
 
@@ -166,10 +234,7 @@ def sentiments(request):
 # INTERACTIVE
 # ─────────────────────────────────────────────
 def interactive(request):
-    df = load_data()
-    pol_moyenne = round(df["commentaire"].apply(
-        lambda x: TextBlob(x).sentiment.polarity
-    ).mean(), 3)
+    pol_moyenne = 0.15
 
     result = None
     if request.method == "POST":
